@@ -104,16 +104,6 @@ public class PackagerMojo extends AbstractMojo {
     private File earConf;
 
     /**
-     * The plugin groupId.
-     */
-    static final String PLUGIN_GROUP_ID = "org.eclipse.persistence";
-
-    /**
-     * The plugin artifactId.
-     */
-    static final String PLUGIN_ARTIFACT_ID = "el-maven-plugin";
-
-    /**
      * Name of the generated JAR.
      */
     @Parameter( defaultValue = "${project.build.finalName}", readonly = true )
@@ -223,6 +213,7 @@ public class PackagerMojo extends AbstractMojo {
             throw new MojoExecutionException(t.getMessage(), t);
         }
         helper.attachArtifact(project, "jar", "ejb", destJar);
+
         if ("EAR".equalsIgnoreCase(mode)) {
             p = new Packager(p);
             destJar = new File(outputDirectory, finalName + ".ear");
@@ -234,6 +225,14 @@ public class PackagerMojo extends AbstractMojo {
                 p.addFile(f, "lib/");
                 f = getResolved("junit");
                 p.addFile(f, "lib/");
+                for (Dependency testArtifact : getTestArtifacts()) {
+                    try {
+                        Artifact tests = DependencyResolver.resolveArtifact(testArtifact, remoteRepos, repoSystem, repoSession);
+                        p.addFile(tests.getFile(), "lib/");
+                    } catch (Throwable t) {
+                        throw new MojoExecutionException(t.getMessage(), t);
+                    }
+                }
             } catch (ArtifactResolutionException e) {
                 throw new RuntimeException(e);
             }
@@ -283,6 +282,16 @@ public class PackagerMojo extends AbstractMojo {
             }
         }
         return members;
+    }
+
+    private List<Dependency> getTestArtifacts() {
+        List<Dependency> tests = new ArrayList<>();
+        for (Dependency dependency : project.getDependencies()) {
+            if (dependency.getType().equals("test-jar")) {
+                tests.add(dependency);
+            }
+        }
+        return tests;
     }
 
     private File getResolved(String artifactId) throws ArtifactResolutionException {

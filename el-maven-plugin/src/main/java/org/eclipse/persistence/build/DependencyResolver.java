@@ -30,7 +30,7 @@ final class DependencyResolver {
     public static Artifact resolveArtifact(org.apache.maven.model.Dependency d, List<RemoteRepository> remoteRepos,
                                                 RepositorySystem repoSystem, RepositorySystemSession repoSession)
             throws ArtifactResolutionException {
-        org.eclipse.aether.artifact.DefaultArtifact artifact = new org.eclipse.aether.artifact.DefaultArtifact(d.getGroupId(),d.getArtifactId(), d.getClassifier(), d.getType(), d.getVersion());
+        org.eclipse.aether.artifact.DefaultArtifact artifact = new org.eclipse.aether.artifact.DefaultArtifact(d.getGroupId(),d.getArtifactId(), d.getClassifier(), "jar", d.getVersion());
         ArtifactRequest request = new ArtifactRequest();
         request.setArtifact(artifact);
         request.setRepositories(remoteRepos);
