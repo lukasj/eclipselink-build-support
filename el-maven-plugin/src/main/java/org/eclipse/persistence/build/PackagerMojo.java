@@ -203,7 +203,7 @@ public class PackagerMojo extends AbstractMojo {
                 throw new MojoExecutionException(t.getMessage(), t);
             }
         }
-        p.addClasses(classesDirectory,  new String[]{"META-INF/persistence.xml", "*.jar"});
+        p.addClasses(classesDirectory, new String[]{"META-INF/persistence.xml", "META-INF/sessions.xml", "*.jar"});
         p.addClasses(testClassesDirectory);
         p.addTemplate("META-INF/persistence.xml");
         p.addTemplate("META-INF/sessions.xml");
@@ -301,4 +301,5 @@ public class PackagerMojo extends AbstractMojo {
         }
         return null;
     }
+
 }

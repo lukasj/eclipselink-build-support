@@ -6,52 +6,19 @@ ejbConf (`${project.basedir}/src/main/resources-server`) resources for EJB jar
 
 mode:
 * EAR (default)
-  * `org.eclipse.persistence.core.test.framework` and `junit` are included and cannot be excluded 
-  * dependencies are packaged under the `lib` folder
+  * `org.eclipse.persistence.core.test.framework` included by default
+  * `junit` included by default
+  * `test-jar` dependencies under the `lib` folder
   * created ejb jar is placed under the root
   * `member_X` dependencies are placed under the root
-  * resources from `${earConf}`
+  * resources from `${earConf}` (default: `${project.basedir}/src/main/resources-ear`)
   * classifier: ear
 * EJB
   * content of `org.eclipse.persistence.jpa.test.framework` is expanded under the root,
 exact content can be controlled by `el.fwk.exclusionFilter` (default: `%regex[.*TestRunner[0-9].*]`)
-  * model from classes (exclude `*.jar`, `META-INF/persistence.xml`)
+  * model from classes (exclude `*.jar`, `META-INF/persistence.xml`, `META-INF/sessions.xml`)
   * tests from testClasses
-  * resources from `${ejbConf}`
+  * default project resources exluding `persistence.xml`
+  * resources from `${ejbConf}` (default: `${project.basedir}/src/main/resources-server`)
   * classifier: ejb
-
-libs
-   
-
-
-  /**
-    * Set this to <code>true</code> to bypass ear-test-jar generation.
-      */
-      @Parameter( property = "maven.test.skip" )
-      private boolean skip;
-
-  /**
-    * Timestamp for reproducible output archive entries.
-      */
-      @Parameter(defaultValue = "${project.build.outputTimestamp}")
-      private String outputTimestamp;
-
-  /**
-    * Name of the generated JAR.
-      */
-      @Parameter( defaultValue = "${project.build.finalName}", readonly = true )
-      private String finalName;
-
-  /**
-    * The archive configuration to use.
-      */
-      @Parameter
-      private MavenArchiveConfiguration archive = new MavenArchiveConfiguration();
-
-  /**
-    * Artifact Ids of project dependencies to be included in the target archive.
-      */
-      @Parameter
-      private List<String> libs;
-
 
