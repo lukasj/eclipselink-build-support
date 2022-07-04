@@ -1,9 +1,5 @@
 # eclipselink-build-support
 
-earConf (`${project.basedir}/src/main/resources-ear`) resources for EAR
-
-ejbConf (`${project.basedir}/src/main/resources-server`) resources for EJB jar
-
 mode:
 * EAR (default)
   * `org.eclipse.persistence.core.test.framework` included by default
