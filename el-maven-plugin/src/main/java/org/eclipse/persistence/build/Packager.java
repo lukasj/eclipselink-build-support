@@ -41,7 +41,7 @@ class Packager {
     /**
      * The plugin artifactId.
      */
-    private static final String PLUGIN_ARTIFACT_ID = "el-maven-plugin";
+    private static final String PLUGIN_ARTIFACT_ID = "eclipselink-testbuild-plugin";
 
     private final MavenArchiver archiver;
     private final Log log;
@@ -138,7 +138,7 @@ class Packager {
     }
 
     private File filterResources(MavenProject project, MavenSession session, MavenResourcesFiltering filtering, File resources) throws MavenFilteringException {
-        File destDir = new File(project.getBuild().getDirectory(), "eclipelink-packager/" + resources.getName());
+        File destDir = new File(project.getBuild().getDirectory(), "eclipselink-packager/" + resources.getName());
         Resource r = new Resource();
         r.setDirectory(resources.getAbsolutePath());
         r.setFiltering(true);
@@ -153,7 +153,7 @@ class Packager {
 
     private String stripVersion(String s) {
         int x = s.indexOf('-');
-        if (x > 1) {
+        if (x > 1 && s.contains("member_")) {
             int y = s.lastIndexOf('-') + 1;
             return s.substring(0, x) + "_" + s.substring(y);
         }

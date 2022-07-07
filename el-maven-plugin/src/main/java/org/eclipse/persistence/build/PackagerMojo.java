@@ -40,20 +40,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-@Mojo(name="ear", defaultPhase = LifecyclePhase.PACKAGE, requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true)
+@Mojo(name="package-testapp", defaultPhase = LifecyclePhase.PACKAGE, requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true)
 public class PackagerMojo extends AbstractMojo {
-
-//    @Component
-//    private TestEar te;
 
     /**
      * The archivers.
      */
     @Component
     private Map<String, Archiver> archivers;
-
-    @Component
-    private Map<String, UnArchiver> unArchivers;
 
     /**
      * The Maven project this mojo executes on.
@@ -94,7 +88,7 @@ public class PackagerMojo extends AbstractMojo {
     /**
      * Ejb-jar resources, overrides defaults
      */
-    @Parameter(defaultValue = "${project.basedir}/src/main/resources-server")
+    @Parameter(defaultValue = "${project.basedir}/src/main/resources-ejb")
     private File ejbConf;
 
     /**
@@ -151,13 +145,13 @@ public class PackagerMojo extends AbstractMojo {
     /**
      * Archive to build. Default is {@code EAR}.
      */
-    @Parameter(defaultValue = "EAR")
+    @Parameter(property = "el.packager.mode", defaultValue = "EAR")
     private String mode;
 
     /**
      * Content to exclude from the jpa.test.framework in the target EJB jar
      */
-    @Parameter(property = "el.fwk.exclusionFilter", defaultValue = "%regex[.*TestRunner[0-9].*]")
+    @Parameter(property = "el.packager.fwk.exclusionFilter", defaultValue = "%regex[.*TestRunner[0-9].*]")
     private String fwkExclusionFilter;
 
     @Component

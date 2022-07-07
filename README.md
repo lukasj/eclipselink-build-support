@@ -1,6 +1,12 @@
 # eclipselink-build-support
 
-mode:
+## eclipselink-testbuild-plugin
+
+A maven plugin packaging eclipselink test application(s) for the deployment on the application
+server. It produces EJB jar and/or EAR application from the project structure with the content
+as is outlined bellow and attaches built artifacts to the project.
+
+mode (property: `el.packager.mode`):
 * EAR (default)
   * `org.eclipse.persistence.core.test.framework` included by default
   * `junit` included by default
@@ -11,10 +17,10 @@ mode:
   * classifier: ear
 * EJB
   * content of `org.eclipse.persistence.jpa.test.framework` is expanded under the root,
-exact content can be controlled by `el.fwk.exclusionFilter` (default: `%regex[.*TestRunner[0-9].*]`)
+exact content can be controlled by `el.packager.fwk.exclusionFilter` (default: `%regex[.*TestRunner[0-9].*]`)
   * model from classes (exclude `*.jar`, `META-INF/persistence.xml`, `META-INF/sessions.xml`)
   * tests from testClasses
-  * default project resources exluding `persistence.xml`
-  * resources from `${ejbConf}` (default: `${project.basedir}/src/main/resources-server`)
+  * default project resources excluding `persistence.xml`
+  * resources from `${ejbConf}` (default: `${project.basedir}/src/main/resources-ejb`)
   * classifier: ejb
 
