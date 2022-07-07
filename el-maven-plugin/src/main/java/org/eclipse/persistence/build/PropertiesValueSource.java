@@ -44,8 +44,8 @@ final class PropertiesValueSource extends PropertiesBasedValueSource {
             default:
                 exp = expression;
         }
-        System.out.println("looking for: " + expression + " - exp - " + exp);
-        System.out.println("to return: " + super.getValue(exp));
+//        System.out.println("looking for: " + expression + " - exp - " + exp);
+//        System.out.println("to return: " + super.getValue(exp));
         return super.getValue(exp);
     }
 

@@ -186,13 +186,14 @@ public class PackagerMojo extends AbstractMojo {
         p.setTarget(destJar);
         p.setOutputTimestamp(outputTimestamp);
         p.setConfDir(ejbConf);
-        if (!project.getArtifactId().contains("member")) {
-            try {
-                File fwk = getResolved("org.eclipse.persistence.jpa.test.framework");
-                p.addExpanded(fwk, fwkExclusionFilter);
-            } catch (ArtifactResolutionException e) {
-                throw new RuntimeException(e);
+        try {
+            File fwk = getResolved("org.eclipse.persistence.jpa.test.framework");
+            if (fwk == null) {
+                throw new MojoExecutionException("cannot find dependency on org.eclipse.persistence.jpa.test.framework");
             }
+            p.addExpanded(fwk, fwkExclusionFilter);
+        } catch (ArtifactResolutionException e) {
+            throw new RuntimeException(e);
         }
         Dependency memberDep = getMemberArtifact();
         if (memberDep != null) {
@@ -222,8 +223,14 @@ public class PackagerMojo extends AbstractMojo {
             p.setConfDir(earConf);
             try {
                 File f = getResolved("org.eclipse.persistence.core.test.framework");
+                if (f == null) {
+                    throw new MojoExecutionException("cannot find dependency on org.eclipse.persistence.core.test.framework");
+                }
                 p.addFile(f, "lib/");
                 f = getResolved("junit");
+                if (f == null) {
+                    throw new MojoExecutionException("cannot find dependency on junit");
+                }
                 p.addFile(f, "lib/");
                 for (Dependency testArtifact : getTestArtifacts()) {
                     try {
@@ -296,7 +303,7 @@ public class PackagerMojo extends AbstractMojo {
 
     private File getResolved(String artifactId) throws ArtifactResolutionException {
         Dependency dep = getArtifact(artifactId);
-        if (dep != null && !project.getArtifactId().contains("member")) {
+        if (dep != null) {
             return DependencyResolver.resolveArtifact(dep, remoteRepos, repoSystem, repoSession).getFile();
         }
         return null;
