@@ -198,6 +198,14 @@ public class PackagerMojo extends AbstractMojo {
                 throw new MojoExecutionException(t.getMessage(), t);
             }
         }
+        for (Dependency testArtifact : getTestArtifacts()) {
+            try {
+                Artifact tests = DependencyResolver.resolveArtifact(testArtifact, remoteRepos, repoSystem, repoSession);
+                p.addExpanded(tests.getFile(), "%regex[.*META-INF/.*]");
+            } catch (Throwable t) {
+                throw new MojoExecutionException(t.getMessage(), t);
+            }
+        }
         p.addClasses(classesDirectory, new String[]{"META-INF/persistence.xml", "META-INF/sessions.xml", "*.jar"});
         p.addClasses(testClassesDirectory);
         p.addTemplate("META-INF/persistence.xml");
@@ -226,14 +234,6 @@ public class PackagerMojo extends AbstractMojo {
                     throw new MojoExecutionException("cannot find dependency on junit");
                 }
                 p.addFile(f, "lib/");
-                for (Dependency testArtifact : getTestArtifacts()) {
-                    try {
-                        Artifact tests = DependencyResolver.resolveArtifact(testArtifact, remoteRepos, repoSystem, repoSession);
-                        p.addFile(tests.getFile(), "lib/");
-                    } catch (Throwable t) {
-                        throw new MojoExecutionException(t.getMessage(), t);
-                    }
-                }
             } catch (ArtifactResolutionException e) {
                 throw new RuntimeException(e);
             }
