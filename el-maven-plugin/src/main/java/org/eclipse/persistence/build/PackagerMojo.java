@@ -288,7 +288,7 @@ public class PackagerMojo extends AbstractMojo {
     private List<Dependency> getTestArtifacts() {
         List<Dependency> tests = new ArrayList<>();
         for (Dependency dependency : project.getDependencies()) {
-            if (dependency.getType().equals("test-jar")) {
+            if ("test-jar".equals(dependency.getType()) || "model".equals(dependency.getClassifier())) {
                 tests.add(dependency);
             }
         }

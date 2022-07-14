@@ -17,7 +17,7 @@ mode (property: `el.packager.mode`):
 * EJB
   * content of `org.eclipse.persistence.jpa.test.framework` is expanded under the root,
 exact content can be controlled by `el.packager.fwk.exclusionFilter` (default: `%regex[.*TestRunner[0-9].*]`)
-  * `test-jar` dependencies are expanded under the root
+  * `model` (classifier)/`test-jar` (type) dependencies are expanded under the root
   * model from classes (exclude `*.jar`, `META-INF/persistence.xml`, `META-INF/sessions.xml`)
   * tests from testClasses
   * default project resources excluding `persistence.xml`
