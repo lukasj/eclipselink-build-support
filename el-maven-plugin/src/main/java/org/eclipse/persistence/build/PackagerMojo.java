@@ -15,6 +15,7 @@ package org.eclipse.persistence.build;
 import org.apache.maven.archiver.MavenArchiveConfiguration;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Dependency;
+import org.apache.maven.model.Plugin;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -27,22 +28,63 @@ import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.MavenProjectHelper;
 import org.apache.maven.shared.filtering.MavenResourcesFiltering;
 import org.codehaus.plexus.archiver.Archiver;
-import org.codehaus.plexus.archiver.UnArchiver;
 import org.codehaus.plexus.archiver.jar.JarArchiver;
+import org.codehaus.plexus.interpolation.ValueSource;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.RepositorySystemSession;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.repository.RemoteRepository;
 import org.eclipse.aether.resolution.ArtifactResolutionException;
 
+import javax.xml.transform.TransformerException;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Mojo(name="package-testapp", defaultPhase = LifecyclePhase.PACKAGE, requiresDependencyResolution = ResolutionScope.TEST, threadSafe = true)
-public class PackagerMojo extends AbstractMojo {
+public final class PackagerMojo extends AbstractMojo {
 
+    static final Path EJB_DESC = Path.of("META-INF", "ejb-jar.xml");
+    static final Path PERSISTENCE_DESC = Path.of("META-INF", "persistence.xml");
+    static final Path WORK_DIR = Path.of("eclipselink-packager");
+
+    /**
+     * The plugin groupId.
+     */
+    static final String PLUGIN_GROUP_ID = "org.eclipse.persistence";
+
+    /**
+     * The plugin artifactId.
+     */
+    static final String PLUGIN_ARTIFACT_ID = "eclipselink-testbuild-plugin";
+
+    private static final Map<String, String> RUNNERS = Map.of(
+            "org/eclipse/persistence/testing/framework/jpa/server/TestRunner.class", "",
+            "org/eclipse/persistence/testing/framework/jpa/server/GenericTestRunner.class", "GenericTestRunner",
+            "org/eclipse/persistence/testing/framework/jpa/server/SingleUnitTestRunnerBean.class", "SingleUnitTestRunner",
+            "org/eclipse/persistence/testing/framework/jpa/server/TestRunner1Bean.class", "TestRunner1",
+            "org/eclipse/persistence/testing/framework/jpa/server/TestRunner2Bean.class", "TestRunner2",
+            "org/eclipse/persistence/testing/framework/jpa/server/TestRunner3Bean.class", "TestRunner3",
+            "org/eclipse/persistence/testing/framework/jpa/server/TestRunner4Bean.class", "TestRunner4",
+            "org/eclipse/persistence/testing/framework/jpa/server/TestRunner5Bean.class", "TestRunner5",
+            "org/eclipse/persistence/testing/framework/jpa/server/TestRunner6Bean.class", "TestRunner6"
+    );
+
+    private static final Map<String, String> RUNNERS_CACHE = new ConcurrentHashMap<>(2);
     /**
      * The archivers.
      */
@@ -149,6 +191,12 @@ public class PackagerMojo extends AbstractMojo {
     private String mode;
 
     /**
+     * Archive to build. Default is {@code EAR}.
+     */
+    @Parameter(property = "el.packager.descriptors", defaultValue = "true")
+    private boolean generateDescriptors;
+
+    /**
      * Content to exclude from the jpa.test.framework in the target EJB jar
      */
     @Parameter(property = "el.packager.fwk.exclusionFilter", defaultValue = "%regex[.*TestRunner[0-9].*]")
@@ -160,7 +208,7 @@ public class PackagerMojo extends AbstractMojo {
     public PackagerMojo() {
     }
 
-    public void execute() throws MojoExecutionException, MojoFailureException {
+    public void execute() throws MojoExecutionException {
         if ("pom".equals(project.getPackaging())) {
             getLog().info("pom projects not supported, skipping...");
             return;
@@ -186,8 +234,35 @@ public class PackagerMojo extends AbstractMojo {
                 throw new MojoExecutionException("cannot find dependency on org.eclipse.persistence.jpa.test.framework");
             }
             p.addExpanded(fwk, fwkExclusionFilter);
-        } catch (ArtifactResolutionException e) {
-            throw new RuntimeException(e);
+            if (generateDescriptors) {
+                Path puXml = Paths.get(project.getResources().get(0).getDirectory()).resolve(PERSISTENCE_DESC);
+                if (Files.isRegularFile(puXml)) {
+                    DescriptorGenerator gen = new DescriptorGenerator(puXml, getLog());
+                    gen.ejbDescriptor(Files.notExists(ejbConf.toPath().resolve(EJB_DESC)));
+                    gen.persistenceDescriptor(Files.notExists(ejbConf.toPath().resolve(PERSISTENCE_DESC)));
+                    ValueSource props = new PropertiesValueSource(project.getProperties());
+                    Map<String, Object> options = new HashMap<>();
+                    options.put("generator.id", String.format("EclipseLink Build Plugin (%s:%s:%s)", PackagerMojo.PLUGIN_GROUP_ID, PackagerMojo.PLUGIN_ARTIFACT_ID, getPluginVersion()));
+                    options.put("data-source-type", props.getValue("persistence-unit.data-source-type"));
+                    options.put("data-source-name", props.getValue("persistence-unit.data-source-name"));
+                    options.put("db.platform", props.getValue("db.platform"));
+                    options.put("server.platform", props.getValue("server.platform"));
+                    options.put("server.weaving", props.getValue("persistence-unit.server-weaving"));
+                    try {
+                        options.put("testRunners", getRunners(fwk, fwkExclusionFilter));
+                    } catch (UnsupportedOperationException uoe) {
+                        gen.ejbDescriptor(false);
+                        getLog().warn(uoe.getMessage());
+                    }
+                    Path generatedFolder = Paths.get(project.getBuild().getDirectory()).resolve(WORK_DIR.resolve("generated"));
+                    gen.generate(generatedFolder, options);
+                    p.addResources(generatedFolder);
+                } else {
+                    getLog().warn(String.format("Cannot find %s resource to generate server-side descriptors from.", PERSISTENCE_DESC));
+                }
+            }
+        } catch (ArtifactResolutionException | IOException | TransformerException e) {
+            throw new MojoExecutionException(e);
         }
         Dependency memberDep = getMemberArtifact();
         if (memberDep != null) {
@@ -303,4 +378,35 @@ public class PackagerMojo extends AbstractMojo {
         return null;
     }
 
+    private String getRunners(File file, String filter) {
+        return RUNNERS_CACHE.computeIfAbsent(filter, (f) -> {
+            Set<String> result = new HashSet<>();
+            if (f.startsWith("%regex[")) {
+                final Pattern pattern = Pattern.compile(f.substring(7, f.lastIndexOf(']')));
+                try (JarFile jf = new JarFile(file)) {
+                    try (Stream<JarEntry> stream = jf.stream()) {
+                        stream.filter((x) -> x.getName().contains("TestRunner"))
+                                .filter((x) -> !(pattern.matcher(x.getName()).matches()))
+                                .map((x) -> RUNNERS.getOrDefault(x.getName(), x.getName().substring(x.getName().lastIndexOf('/') + 1, x.getName().lastIndexOf('.'))))
+                                .collect(Collectors.toCollection(() -> result));
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            } else {
+                //TODO
+                throw new UnsupportedOperationException("non-regex filters are not supported yet, ejb-jar.xml won't be generated.");
+            }
+            return String.join(" ", result).trim();
+        });
+    }
+
+    private String getPluginVersion() {
+        for (Plugin p: project.getBuildPlugins()) {
+            if (PLUGIN_GROUP_ID.equals(p.getGroupId()) && PLUGIN_ARTIFACT_ID.equals(p.getArtifactId())) {
+                return p.getVersion();
+            }
+        }
+        return "unknown";
+    }
 }

@@ -27,25 +27,19 @@ import org.codehaus.plexus.archiver.jar.ManifestException;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-class Packager {
-
-    /**
-     * The plugin groupId.
-     */
-    private static final String PLUGIN_GROUP_ID = "org.eclipse.persistence";
-
-    /**
-     * The plugin artifactId.
-     */
-    private static final String PLUGIN_ARTIFACT_ID = "eclipselink-testbuild-plugin";
+final class Packager {
 
     private final MavenArchiver archiver;
     private final Log log;
     private File confDir;
+    private final List<Path> resources;
 
     Packager(Packager p) {
         this(p.archiver.getArchiver(), p.log);
@@ -55,9 +49,10 @@ class Packager {
 
     Packager(JarArchiver jarArchiver, Log log) {
         archiver = new MavenArchiver();
-        archiver.setCreatedBy("EclipseLink Build Plugin", PLUGIN_GROUP_ID, PLUGIN_ARTIFACT_ID);
+        archiver.setCreatedBy("EclipseLink Build Plugin", PackagerMojo.PLUGIN_GROUP_ID, PackagerMojo.PLUGIN_ARTIFACT_ID);
         archiver.setArchiver(jarArchiver);
         this.log = log;
+        resources = new ArrayList<>(1);
     }
 
     public void setTarget(File destFile) {
@@ -114,6 +109,10 @@ class Packager {
         }
     }
 
+    public void addResources(Path resourceDir) {
+        resources.add(resourceDir);
+    }
+
     public void addTemplate(String template) {
         File t = new File(confDir, template);
         if (t.exists() && t.isFile()) {
@@ -126,24 +125,22 @@ class Packager {
 
     public void createArchive(MavenProject project, MavenSession session, MavenResourcesFiltering filtering, MavenArchiveConfiguration archive)
             throws MavenFilteringException, DependencyResolutionRequiredException, IOException, ManifestException {
-        if (confDir.exists() && confDir.isDirectory()) {
+        List<Resource> res = getResources();
+        if (res.isEmpty()) {
+            log.debug("skipping directory: " + confDir.getName());
+        } else {
             log.debug("filtering resources: " + confDir.getName());
-            File filtered = filterResources(project, session, filtering, confDir);
+            File filtered = filterResources(project, session, filtering, res);
             log.debug("adding resources: " + filtered.getName());
             archiver.getArchiver().addDirectory(filtered);
-        } else {
-            log.debug("skipping directory: " + confDir.getName());
         }
         archiver.createArchive(session, project, archive);
     }
 
-    private File filterResources(MavenProject project, MavenSession session, MavenResourcesFiltering filtering, File resources) throws MavenFilteringException {
-        File destDir = new File(project.getBuild().getDirectory(), "eclipselink-packager/" + resources.getName());
-        Resource r = new Resource();
-        r.setDirectory(resources.getAbsolutePath());
-        r.setFiltering(true);
+    private File filterResources(MavenProject project, MavenSession session, MavenResourcesFiltering filtering, List<Resource> resources) throws MavenFilteringException {
+        File destDir = Paths.get(project.getBuild().getDirectory()).resolve(PackagerMojo.WORK_DIR.resolve(confDir.getName())).toFile();
         MavenResourcesExecution resourceExec = new MavenResourcesExecution(
-                List.of(r), destDir, project, project.getProperties().getProperty("project.build.sourceEncoding"),
+                resources, destDir, project, project.getProperties().getProperty("project.build.sourceEncoding"),
                 Collections.emptyList(), Collections.emptyList(), session);
         resourceExec.addFilerWrapperWithEscaping(new PropertiesValueSource(project.getProperties()),
                 "@", "@", "\\", true);
@@ -160,4 +157,19 @@ class Packager {
         return s;
     }
 
+    private List<Resource> getResources() {
+        List<Resource> res = new ArrayList<>();
+        if (confDir.exists() && confDir.isDirectory()) {
+            res.add(createResource(confDir));
+        }
+        resources.forEach((path) -> res.add(createResource(path.toFile())));
+        return res;
+    }
+
+    private Resource createResource(File dir) {
+        Resource r = new Resource();
+        r.setDirectory(dir.getAbsolutePath());
+        r.setFiltering(true);
+        return r;
+    }
 }
