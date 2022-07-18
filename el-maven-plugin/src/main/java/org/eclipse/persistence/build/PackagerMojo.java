@@ -18,7 +18,6 @@ import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -85,11 +84,12 @@ public final class PackagerMojo extends AbstractMojo {
     );
 
     private static final Map<String, String> RUNNERS_CACHE = new ConcurrentHashMap<>(2);
+
     /**
-     * The archivers.
+     * The archiver.
      */
-    @Component
-    private Map<String, Archiver> archivers;
+    @Component(role = Archiver.class, hint = "jar")
+    private JarArchiver archiver;
 
     /**
      * The Maven project this mojo executes on.
@@ -224,7 +224,7 @@ public final class PackagerMojo extends AbstractMojo {
         }
 
         File destJar = new File(outputDirectory, finalName + "_ejb.jar");
-        Packager p = new Packager((JarArchiver) archivers.get("jar"), getLog());
+        Packager p = new Packager(archiver, getLog());
         p.setTarget(destJar);
         p.setOutputTimestamp(outputTimestamp);
         p.setConfDir(ejbConf);

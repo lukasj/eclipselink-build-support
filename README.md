@@ -15,9 +15,6 @@ mode (property: `el.packager.mode`):
   * resources from `${earConf}` (default: `${project.basedir}/src/main/resources-ear`)
   * classifier: ear
 * EJB
-  * if `persistence.xml` and `ejb-jar.xml` descriptors are not found under `{$ejbConf}` directory,
-they are generated from the project's default `persistence.xml` found under project's default resources;
-`el.packager.descriptors` property can be set to `false` to explicitly disable generation of these descriptors
   * content of `org.eclipse.persistence.jpa.test.framework` is expanded under the root,
 exact content can be controlled by `el.packager.fwk.exclusionFilter` (default: `%regex[.*TestRunner[0-9].*]`)
   * `model` (classifier)/`test-jar` (type) dependencies are expanded under the root
@@ -25,5 +22,8 @@ exact content can be controlled by `el.packager.fwk.exclusionFilter` (default: `
   * tests from testClasses
   * default project resources excluding `persistence.xml`
   * resources from `${ejbConf}` (default: `${project.basedir}/src/main/resources-ejb`)
+  * if `persistence.xml` and/or `ejb-jar.xml` descriptors are not found under `${ejbConf}` directory,
+    they are generated from the project's default `persistence.xml` found under project's default resources;
+    `el.packager.descriptors` property can be set to `false` to explicitly disable generation of these descriptors
   * classifier: ejb
 

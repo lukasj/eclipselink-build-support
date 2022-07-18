@@ -66,24 +66,30 @@
     <!-- process persistence-unit/properties -->
     <xsl:template match="*[local-name() = 'properties']">
         <xsl:copy>
-            <xsl:element name="property" namespace="{namespace-uri()}">
-                <xsl:attribute name="name">eclipselink.target-database</xsl:attribute>
-                <xsl:attribute name="value">
-                    <xsl:value-of select="$db.platform"/>
-                </xsl:attribute>
-            </xsl:element>
-            <xsl:element name="property" namespace="{namespace-uri()}">
-                <xsl:attribute name="name">eclipselink.target-server</xsl:attribute>
-                <xsl:attribute name="value">
-                    <xsl:value-of select="$server.platform"/>
-                </xsl:attribute>
-            </xsl:element>
-            <xsl:element name="property" namespace="{namespace-uri()}">
-                <xsl:attribute name="name">eclipselink.weaving</xsl:attribute>
-                <xsl:attribute name="value">
-                    <xsl:value-of select="$server.weaving"/>
-                </xsl:attribute>
-            </xsl:element>
+            <xsl:if test="not(*[local-name() = 'property'][(@name='eclipselink.target-database')])">
+                <xsl:element name="property" namespace="{namespace-uri()}">
+                    <xsl:attribute name="name">eclipselink.target-database</xsl:attribute>
+                    <xsl:attribute name="value">
+                        <xsl:value-of select="$db.platform"/>
+                    </xsl:attribute>
+                </xsl:element>
+            </xsl:if>
+            <xsl:if test="not(*[local-name() = 'property'][(@name='eclipselink.target-server')])">
+                <xsl:element name="property" namespace="{namespace-uri()}">
+                    <xsl:attribute name="name">eclipselink.target-server</xsl:attribute>
+                    <xsl:attribute name="value">
+                        <xsl:value-of select="$server.platform"/>
+                    </xsl:attribute>
+                </xsl:element>
+            </xsl:if>
+            <xsl:if test="not(*[local-name() = 'property'][(@name='eclipselink.weaving')])">
+                <xsl:element name="property" namespace="{namespace-uri()}">
+                    <xsl:attribute name="name">eclipselink.weaving</xsl:attribute>
+                    <xsl:attribute name="value">
+                        <xsl:value-of select="$server.weaving"/>
+                    </xsl:attribute>
+                </xsl:element>
+            </xsl:if>
             <xsl:apply-templates select="*[local-name() = 'property']"/>
         </xsl:copy>
     </xsl:template>
