@@ -79,6 +79,9 @@ final class DescriptorGenerator {
         final Transformer t = Objects.requireNonNull(transformer);
         opts.forEach(transformer::setParameter);
         Files.createDirectories(dest.getParent());
+        if (Files.exists(dest)) {
+            Files.delete(dest);
+        }
         try (Reader r = Files.newBufferedReader(sourcePu);
              Writer w = Files.newBufferedWriter(Files.createFile(dest))) {
             t.transform(new StreamSource(r), new StreamResult(w));
