@@ -141,7 +141,7 @@ final class Packager {
         File destDir = Paths.get(project.getBuild().getDirectory()).resolve(PackagerMojo.WORK_DIR.resolve(confDir.getName())).toFile();
         MavenResourcesExecution resourceExec = new MavenResourcesExecution(
                 resources, destDir, project, project.getProperties().getProperty("project.build.sourceEncoding"),
-                Collections.emptyList(), Collections.emptyList(), session);
+                Collections.emptyList(), List.of("gar"), session);
         resourceExec.addFilerWrapperWithEscaping(new PropertiesValueSource(project.getProperties()),
                 "@", "@", "\\", true);
         filtering.filterResources(resourceExec);
